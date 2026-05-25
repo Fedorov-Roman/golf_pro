@@ -52,13 +52,17 @@ A_STAR_CELL_SIZE = 40
 FAIRWAY_SMOOTH_STEP = 10
 FAIRWAY_SMOOTH_PASSES = 4
 
+# Зоны
+TEE_RADIUS = FAIRWAY_WIDTH // 2 + 10       # 50
+GREEN_RADIUS = TEE_RADIUS * 3              # 150
+
 # Параболическая физика
 GRAVITY = 600.0
 MIN_ANGLE = 0
 MAX_ANGLE = 70
 ANGLE_SELECT_RADIUS = 40
 
-# Клюшки
+# Клюшки (без изменений)
 class Club:
     def __init__(self, name, max_power, accuracy, color, icon_color):
         self.name = name

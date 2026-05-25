@@ -9,7 +9,7 @@ def draw_game(screen, game):
     bg_color = hole["preset"]["bg"]
     screen.fill(bg_color)
 
-    # --- Фервей ---
+    # --- Фервей (рисуем до зон, чтобы зоны были поверх) ---
     fairway_points = hole.get("fairway_points", [])
     if fairway_points and len(fairway_points) >= 2:
         if hole["field_type"] == "snow":
@@ -51,6 +51,21 @@ def draw_game(screen, game):
         if len(polygon_world) >= 3:
             screen_points = [camera.world_to_screen(p) for p in polygon_world]
             pygame.draw.polygon(screen, fairway_color, screen_points)
+
+    # --- Рисуем зоны Tee и Green поверх фервея ---
+    for zone in hole.get("zones", []):
+        if "image" in zone.params:
+            img = zone.params["image"]
+            pos = zone.pos
+            screen_pos = camera.world_to_screen(pos)
+            if camera.zoom != 1.0:
+                w = max(1, int(img.get_width() * camera.zoom))
+                h = max(1, int(img.get_height() * camera.zoom))
+                img_scaled = pygame.transform.scale(img, (w, h))
+            else:
+                img_scaled = img
+            rect = img_scaled.get_rect(center=screen_pos)
+            screen.blit(img_scaled, rect)
 
     # --- Препятствия ---
     z_map = {"sand": 0, "water": 1, "ice": 1}

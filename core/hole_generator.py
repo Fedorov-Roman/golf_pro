@@ -3,6 +3,7 @@ import math
 import heapq
 import config
 import textures
+from entities.zone import Zone
 
 def _is_position_free(pos, radius, obstacles, min_gap=15):
     for obs in obstacles:
@@ -247,6 +248,24 @@ def generate_hole(field_type, weather_type):
         s = random.uniform(*wind_range)
         wind = (math.cos(a)*s, math.sin(a)*s)
 
+    # --- Генерация зон Tee и Green ---
+    zones = []
+    # Определяем цвет фервея на основе поля
+    bg_color = preset["bg"]
+    if field_type == "snow":
+        fairway_color = (min(255, bg_color[0] + 10), min(255, bg_color[1] + 10), min(255, bg_color[2] + 10))
+    else:
+        fairway_color = (max(0, bg_color[0] - 10), max(0, bg_color[1] - 10), max(0, bg_color[2] - 10))
+    # Tee
+    tee_radius = config.TEE_RADIUS
+    tee_img = textures.make_tee_texture(tee_radius, fairway_color)
+    zones.append(Zone("tee", start, radius=tee_radius, shape="circle", params={"image": tee_img}))
+    # Green
+    green_radius = config.GREEN_RADIUS
+    green_fill = (min(255, fairway_color[0] + 20), min(255, fairway_color[1] + 20), min(255, fairway_color[2] + 20))
+    green_img = textures.make_green_texture(green_radius, green_fill, fairway_color)
+    zones.append(Zone("green", hole_pos, radius=green_radius, shape="circle", params={"image": green_img}))
+
     return {
         "start": start,
         "hole": hole_pos,
@@ -257,6 +276,7 @@ def generate_hole(field_type, weather_type):
         "preset": preset,
         "fairway_points": fairway_points,
         "fairway_segments": fairway_segments,
-        "zones": []
+        "zones": zones
     }
+
     
