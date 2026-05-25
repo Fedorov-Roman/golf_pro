@@ -2,8 +2,10 @@ import math
 import random
 import config
 
+
 class ShotSystem:
     """Система прицеливания и расчёта удара."""
+
     def __init__(self):
         self.is_aiming = False
         self.aim_start = (0, 0)
@@ -23,12 +25,9 @@ class ShotSystem:
     def accumulate_motion(self, rel):
         self.aim_accumulated = (
             self.aim_accumulated[0] + rel[0],
-            self.aim_accumulated[1] + rel[1]
+            self.aim_accumulated[1] + rel[1],
         )
-        self.aim_current = (
-            self.aim_current[0] + rel[0],
-            self.aim_current[1] + rel[1]
-        )
+        self.aim_current = (self.aim_current[0] + rel[0], self.aim_current[1] + rel[1])
 
     def finish_aim(self, club):
         self.is_aiming = False
@@ -46,12 +45,16 @@ class ShotSystem:
         self.is_aiming = False
         self.aim_accumulated = (0.0, 0.0)
 
-    def update_angle(self, mouse_world_y, ball_world_y, zoom=1.0):
-        """Обновляет значение угла по вертикальному положению мыши в мировых координатах."""
-        dy = mouse_world_y - ball_world_y
-        world_radius = config.ANGLE_SELECT_RADIUS / zoom
-        dy = max(0.0, min(world_radius, dy))
-        self.angle_value = (dy / world_radius) * config.MAX_ANGLE
+    def update_angle(self, mouse_screen_y, ball_screen_y, radius):
+        """
+        Обновляет угол при движении мыши в пределах шкалы.
+        Шкала: от центра мяча (0°) до нижней точки (MAX_ANGLE).
+        Угол меняется только если мышь находится между центром и низом шкалы.
+        """
+        rel_y = mouse_screen_y - ball_screen_y
+        # Ограничиваем диапазон: от 0 (центр) до radius (низ)
+        rel_y = max(0.0, min(float(radius), rel_y))
+        self.angle_value = (rel_y / radius) * config.MAX_ANGLE
 
     def start_angle_selection(self, direction, power):
         self.selecting_angle = True
@@ -86,5 +89,5 @@ class ShotSystem:
             "vel": (direction[0] * v_horiz, direction[1] * v_horiz),
             "vz": v_vert,
             "z": 0.1,
-            "spin": (0.0, 0.0)
+            "spin": (0.0, 0.0),
         }

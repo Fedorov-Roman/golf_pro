@@ -417,10 +417,9 @@ class GolfGame:
     def handle_event(self, event):
         if self.shot_system.selecting_angle:
             if event.type == pygame.MOUSEMOTION:
-                ball = self.balls[self.session.active_player]
-                world_mouse = self.camera.screen_to_world(event.pos)
+                # Передаём положение мыши на экране и центр шкалы (середина экрана)
                 self.shot_system.update_angle(
-                    world_mouse[1], ball.pos[1], self.camera.zoom
+                    event.pos[1], config.SCREEN_HEIGHT // 2, config.ANGLE_SELECT_RADIUS
                 )
             elif event.type == pygame.MOUSEWHEEL:
                 if event.y > 0:

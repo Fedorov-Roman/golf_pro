@@ -10,7 +10,7 @@ def draw_game(screen, game):
     bg_color = hole["preset"]["bg"]
     screen.fill(bg_color)
 
-    # --- Рисуем rough-зоны (высокая трава) до фервея ---
+    # --- Рисуем rough-зоны до фервея ---
     for zone in hole.get("zones", []):
         if zone.type == "rough" and "image" in zone.params:
             img = zone.params["image"]
@@ -25,7 +25,7 @@ def draw_game(screen, game):
             rect = img_scaled.get_rect(center=screen_pos)
             screen.blit(img_scaled, rect)
 
-    # --- Фервей (рисуем после rough, чтобы был поверх) ---
+    # --- Фервей ---
     fairway_points = hole.get("fairway_points", [])
     if fairway_points and len(fairway_points) >= 2:
         if hole["field_type"] == "snow":
@@ -84,7 +84,7 @@ def draw_game(screen, game):
             screen_points = [camera.world_to_screen(p) for p in polygon_world]
             pygame.draw.polygon(screen, fairway_color, screen_points)
 
-    # --- Рисуем зоны Tee и Green поверх фервея ---
+    # --- Рисуем Tee и Green поверх фервея ---
     for zone in hole.get("zones", []):
         if zone.type in ("tee", "green") and "image" in zone.params:
             img = zone.params["image"]
@@ -247,28 +247,24 @@ def draw_game(screen, game):
 
 
 def draw_angle_selector(screen, game):
-    ball = game.balls[game.session.active_player]
-    camera = game.camera
-    ball_world = ball.pos
-    ball_screen = camera.world_to_screen(ball_world)
-    cx, cy = int(ball_screen[0]), int(ball_screen[1])
-    # Окно выбора угла не должно масштабироваться при зуме камеры
-    radius = config.ANGLE_SELECT_RADIUS  # фиксированный радиус
+    """Окно выбора угла всегда по центру экрана, угол меняется только при движении мыши вниз от центра мяча."""
+    screen_w = config.SCREEN_WIDTH
+    screen_h = config.SCREEN_HEIGHT
+    cx, cy = screen_w // 2, screen_h // 2
+    radius = config.ANGLE_SELECT_RADIUS
 
     ball_img = game.ball_surfs_colored[game.session.active_player]
     img_w, img_h = ball_img.get_width(), ball_img.get_height()
-
     scale = (2 * radius) / max(img_w, img_h)
     scaled_w = max(1, int(img_w * scale))
     scaled_h = max(1, int(img_h * scale))
     scaled_ball = pygame.transform.smoothscale(ball_img, (scaled_w, scaled_h))
-
     ball_rect = scaled_ball.get_rect(center=(cx, cy))
     screen.blit(scaled_ball, ball_rect)
 
     dy = (game.shot_system.angle_value / config.MAX_ANGLE) * radius
     indicator_y = cy + dy
-    # Индикатор тоже фиксированного размера
+    pygame.draw.line(screen, config.WHITE, (cx, cy), (cx, cy + radius), 2)
     pygame.draw.circle(screen, config.RED, (cx, int(indicator_y)), 6)
     pygame.draw.circle(screen, config.WHITE, (cx, int(indicator_y)), 6, 1)
 
@@ -277,6 +273,6 @@ def draw_angle_selector(screen, game):
     )
     screen.blit(angle_text, (cx - 40, cy - radius - 20))
     prompt = game.small_font.render(
-        "Двигайте мышь вниз для подъёма", True, config.WHITE
+        "Двигайте мышь вниз от мяча для угла", True, config.WHITE
     )
-    screen.blit(prompt, (cx - 100, cy + radius + 10))
+    screen.blit(prompt, (cx - 120, cy + radius + 10))
