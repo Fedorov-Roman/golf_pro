@@ -72,7 +72,7 @@ BUNKER_POWER_MULT = 0.6  # множитель силы удара из бунк�
 GRAVITY = 600.0
 MIN_ANGLE = 0
 MAX_ANGLE = 70
-ANGLE_SELECT_RADIUS = 40
+ANGLE_SELECT_RADIUS = 50
 
 
 # Клюшки (без изменений)

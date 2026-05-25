@@ -252,7 +252,8 @@ def draw_angle_selector(screen, game):
     ball_world = ball.pos
     ball_screen = camera.world_to_screen(ball_world)
     cx, cy = int(ball_screen[0]), int(ball_screen[1])
-    radius = int(config.ANGLE_SELECT_RADIUS * camera.zoom)
+    # Окно выбора угла не должно масштабироваться при зуме камеры
+    radius = config.ANGLE_SELECT_RADIUS  # фиксированный радиус
 
     ball_img = game.ball_surfs_colored[game.session.active_player]
     img_w, img_h = ball_img.get_width(), ball_img.get_height()
@@ -267,10 +268,9 @@ def draw_angle_selector(screen, game):
 
     dy = (game.shot_system.angle_value / config.MAX_ANGLE) * radius
     indicator_y = cy + dy
-    pygame.draw.circle(screen, config.RED, (cx, int(indicator_y)), int(6 * camera.zoom))
-    pygame.draw.circle(
-        screen, config.WHITE, (cx, int(indicator_y)), int(6 * camera.zoom), 1
-    )
+    # Индикатор тоже фиксированного размера
+    pygame.draw.circle(screen, config.RED, (cx, int(indicator_y)), 6)
+    pygame.draw.circle(screen, config.WHITE, (cx, int(indicator_y)), 6, 1)
 
     angle_text = game.small_font.render(
         f"Угол: {int(game.shot_system.angle_value)}°", True, config.WHITE
