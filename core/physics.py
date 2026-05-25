@@ -1,6 +1,7 @@
 import math
 import config
 
+
 def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager=None):
     messages = []
     wind = hole_data["wind"]
@@ -17,6 +18,7 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
 
         ball.last_pos = list(ball.pos)
 
+        # -------- фаза полёта --------
         if ball.in_flight:
             ball.vz -= config.GRAVITY * dt
             ball.z += ball.vz * dt
@@ -33,7 +35,6 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
                 ball.vel[0] *= 0.95
                 ball.vel[1] *= 0.95
 
-            # Границы мира (от 0 до WORLD_WIDTH/HEIGHT)
             margin = config.MARGIN
             world_w = config.WORLD_WIDTH
             world_h = config.WORLD_HEIGHT
@@ -51,13 +52,23 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
                 ball.vel[1] *= -0.5
             continue
 
-        # Качение
-        is_on_fairway = False
-        if fairway_segments:
-            is_on_fairway = _is_on_fairway(ball.pos, fairway_segments, config.FAIRWAY_WIDTH)
+        # -------- фаза качения --------
+        # Определяем зону, в которой находится мяч
+        zone_type = zone_manager.get_zone_type_at(ball.pos) if zone_manager else None
 
-        friction = config.FAIRWAY_FRICTION * rain_mult if is_on_fairway else config.BASE_FRICTION * rain_mult
+        # Базовое трение в зависимости от зоны
+        if zone_type == "rough":
+            friction = config.BASE_FRICTION * config.ROUGH_FRICTION_MULT * rain_mult
+        elif zone_type == "bunker":
+            friction = config.BASE_FRICTION * config.SAND_FRICTION_MULT * rain_mult
+        elif fairway_segments and _is_on_fairway(
+            ball.pos, fairway_segments, config.FAIRWAY_WIDTH
+        ):
+            friction = config.FAIRWAY_FRICTION * rain_mult
+        else:
+            friction = config.BASE_FRICTION * rain_mult
 
+        # Препятствия (деревья, вода, песок, лёд)
         for obs in obstacles:
             dx = ball.pos[0] - obs["pos"][0]
             dy = ball.pos[1] - obs["pos"][1]
@@ -67,24 +78,30 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
                 if dist < obs["radius"] + config.BALL_RADIUS:
                     nx = dx / (dist + 0.001)
                     ny = dy / (dist + 0.001)
-                    ball.pos[0] = obs["pos"][0] + nx * (obs["radius"] + config.BALL_RADIUS)
-                    ball.pos[1] = obs["pos"][1] + ny * (obs["radius"] + config.BALL_RADIUS)
+                    ball.pos[0] = obs["pos"][0] + nx * (
+                        obs["radius"] + config.BALL_RADIUS
+                    )
+                    ball.pos[1] = obs["pos"][1] + ny * (
+                        obs["radius"] + config.BALL_RADIUS
+                    )
                     vn = ball.vel[0] * nx + ball.vel[1] * ny
                     ball.vel[0] -= 1.9 * vn * nx
                     ball.vel[1] -= 1.9 * vn * ny
                     ball.vel[0] *= 0.5
                     ball.vel[1] *= 0.5
                     ball.moving = True
+
             elif obs["type"] == "water":
-                # та же логика воды, без изменений
                 in_water = False
                 for bx, by, br in obs["blobs"]:
-                    if math.hypot(ball.pos[0] - bx, ball.pos[1] - by) < br + config.BALL_RADIUS:
+                    if (
+                        math.hypot(ball.pos[0] - bx, ball.pos[1] - by)
+                        < br + config.BALL_RADIUS
+                    ):
                         in_water = True
                         break
                 if in_water:
                     strokes[i][hole_index] += 1
-                    # выброс
                     dx = ball.pos[0] - obs["pos"][0]
                     dy = ball.pos[1] - obs["pos"][1]
                     dist_center = math.hypot(dx, dy)
@@ -96,14 +113,23 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
                     for _ in range(100):
                         in_any = False
                         for bx, by, br in obs["blobs"]:
-                            if math.hypot(new_x - bx, new_y - by) < br + config.BALL_RADIUS:
+                            if (
+                                math.hypot(new_x - bx, new_y - by)
+                                < br + config.BALL_RADIUS
+                            ):
                                 in_any = True
                                 break
                         if not in_any:
                             other_collision = False
                             for other in obstacles:
-                                if other is obs: continue
-                                if math.hypot(new_x - other["pos"][0], new_y - other["pos"][1]) < other["radius"] + config.BALL_RADIUS + 5:
+                                if other is obs:
+                                    continue
+                                if (
+                                    math.hypot(
+                                        new_x - other["pos"][0], new_y - other["pos"][1]
+                                    )
+                                    < other["radius"] + config.BALL_RADIUS + 5
+                                ):
                                     other_collision = True
                                     break
                             if not other_collision:
@@ -119,15 +145,21 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
                     ball.stop()
                     messages.append(f"Игрок {i+1}: Вода! +1 штраф")
                     break
+
             elif obs["type"] == "sand":
+                # Песок: трение уже установлено через zone_type, но если мяч каким-то образом
+                # не был определён как "bunker", применяем трение песка здесь
                 if dist < obs["radius"]:
-                    friction = config.BASE_FRICTION * config.SAND_FRICTION_MULT * rain_mult
+                    if zone_type != "bunker":  # чтобы не дублировать
+                        friction = (
+                            config.BASE_FRICTION * config.SAND_FRICTION_MULT * rain_mult
+                        )
+
             elif obs["type"] == "ice":
                 if dist < obs["radius"]:
-                    friction = config.BASE_FRICTION * config.ICE_FRICTION_MULT * rain_mult
-
-        if zone_manager:
-            zone_manager.apply_physics(ball, dt, field_type)
+                    friction = (
+                        config.BASE_FRICTION * config.ICE_FRICTION_MULT * rain_mult
+                    )
 
         if ball.moving:
             speed = math.hypot(ball.vel[0], ball.vel[1])
@@ -148,7 +180,6 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
                 ball.pos[0] += ball.vel[0] * dt
                 ball.pos[1] += ball.vel[1] * dt
 
-                # Границы мира (качение)
                 if ball.pos[0] < config.MARGIN:
                     ball.pos[0] = config.MARGIN
                     ball.vel[0] *= -0.5
@@ -163,7 +194,9 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
                     ball.vel[1] *= -0.5
 
         if not ball.in_hole and ball.visible and not ball.in_flight:
-            dist_to_hole = math.hypot(ball.pos[0] - hole_pos[0], ball.pos[1] - hole_pos[1])
+            dist_to_hole = math.hypot(
+                ball.pos[0] - hole_pos[0], ball.pos[1] - hole_pos[1]
+            )
             if dist_to_hole < 12:
                 speed = math.hypot(ball.vel[0], ball.vel[1])
                 if speed <= config.MAX_HOLE_SPEED:
@@ -177,7 +210,7 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
                         ball.fast_warned = True
 
     for i in range(len(balls)):
-        for j in range(i+1, len(balls)):
+        for j in range(i + 1, len(balls)):
             b1, b2 = balls[i], balls[j]
             if not b1.visible or not b2.visible or b1.in_hole or b2.in_hole:
                 continue
@@ -209,6 +242,7 @@ def update_physics(balls, hole_data, dt, strokes, players_finished, zone_manager
 
     return messages
 
+
 def _is_on_fairway(pos, fairway_segments, width):
     min_dist = float("inf")
     for p1, p2 in fairway_segments:
@@ -217,11 +251,10 @@ def _is_on_fairway(pos, fairway_segments, width):
         if dx == 0 and dy == 0:
             dist = math.hypot(pos[0] - p1[0], pos[1] - p1[1])
         else:
-            t = ((pos[0] - p1[0]) * dx + (pos[1] - p1[1]) * dy) / (dx*dx + dy*dy)
+            t = ((pos[0] - p1[0]) * dx + (pos[1] - p1[1]) * dy) / (dx * dx + dy * dy)
             t = max(0.0, min(1.0, t))
             proj_x = p1[0] + t * dx
             proj_y = p1[1] + t * dy
             dist = math.hypot(pos[0] - proj_x, pos[1] - proj_y)
         min_dist = min(min_dist, dist)
     return min_dist <= width / 2
-   

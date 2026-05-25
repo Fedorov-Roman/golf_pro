@@ -41,7 +41,7 @@ FAIRWAY_FRICTION = 35.0
 MARGIN = 20
 SAND_FRICTION_MULT = 5.0
 MAX_HOLE_SPEED = 100.0
-ICE_FRICTION_MULT = 0.0
+ICE_FRICTION_MULT = 0.1
 WATER_OUTLINE = 3
 
 # Фервей
@@ -53,14 +53,27 @@ FAIRWAY_SMOOTH_STEP = 10
 FAIRWAY_SMOOTH_PASSES = 4
 
 # Зоны
-TEE_RADIUS = FAIRWAY_WIDTH // 2 + 10       # 50
-GREEN_RADIUS = TEE_RADIUS * 3              # 150
+TEE_RADIUS = FAIRWAY_WIDTH // 2 + 10  # 50
+GREEN_RADIUS = TEE_RADIUS * 3  # 150
+ZONE_MARGIN = 10  # минимальный отступ препятствий от зон
+
+# Rough (высокая трава)
+ROUGH_COUNT = 35  # количество пятен rough (увеличено)
+ROUGH_MIN_RADIUS = 40  # минимальный радиус пятна (увеличен)
+ROUGH_MAX_RADIUS = 90  # максимальный радиус пятна (увеличен)
+ROUGH_POWER_MULT = 0.8  # множитель силы удара из rough
+ROUGH_FRICTION_MULT = 2.0  # высокое трение, но меньше песка (5.0)
+
+# Bunker
+BUNKER_MIN_ANGLE = 45  # минимальный угол для удара из бункера
+BUNKER_POWER_MULT = 0.6  # множитель силы удара из бункера
 
 # Параболическая физика
 GRAVITY = 600.0
 MIN_ANGLE = 0
 MAX_ANGLE = 70
 ANGLE_SELECT_RADIUS = 40
+
 
 # Клюшки (без изменений)
 class Club:
@@ -71,23 +84,39 @@ class Club:
         self.color = color
         self.icon_color = icon_color
 
+
 CLUBS = [
     Club("Драйвер", 600, 5.0, (200, 100, 50), (160, 82, 45)),
-    Club("Вуд",     500, 3.5, (160, 82, 45), (139, 69, 19)),
-    Club("Айрон",   400, 2.5, (150, 150, 150), (105, 105, 105)),
-    Club("Ведж",    250, 1.2, (200, 200, 100), (184, 134, 11)),
-    Club("Паттер",  150, 0.0, (180, 180, 180), (128, 128, 128))
+    Club("Вуд", 500, 3.5, (160, 82, 45), (139, 69, 19)),
+    Club("Айрон", 400, 2.5, (150, 150, 150), (105, 105, 105)),
+    Club("Ведж", 250, 1.2, (200, 200, 100), (184, 134, 11)),
+    Club("Паттер", 150, 0.0, (180, 180, 180), (128, 128, 128)),
 ]
 
 FIELD_PRESETS = {
-    "forest": {"bg": (34, 139, 34), "tree": (0, 100, 0), "sand": (238, 203, 173), "water": BLUE},
-    "desert": {"bg": (238, 203, 173), "tree": (139, 69, 19), "sand": (244, 164, 96), "water": LIGHT_BLUE},
-    "snow":   {"bg": (245, 245, 245), "tree": (169, 169, 169), "sand": (220, 220, 220), "water": (135, 206, 250)}
+    "forest": {
+        "bg": (34, 139, 34),
+        "tree": (0, 100, 0),
+        "sand": (238, 203, 173),
+        "water": BLUE,
+    },
+    "desert": {
+        "bg": (238, 203, 173),
+        "tree": (139, 69, 19),
+        "sand": (244, 164, 96),
+        "water": LIGHT_BLUE,
+    },
+    "snow": {
+        "bg": (245, 245, 245),
+        "tree": (169, 169, 169),
+        "sand": (220, 220, 220),
+        "water": (135, 206, 250),
+    },
 }
 
 WEATHER_PARAMS = {
     "sunny": {"wind_range": (0, 0), "rain_mult": 1.0},
-    "rain":  {"wind_range": (15, 35), "rain_mult": 2.5},
+    "rain": {"wind_range": (15, 35), "rain_mult": 2.5},
     "windy": {"wind_range": (50, 90), "rain_mult": 1.0},
 }
 
@@ -96,7 +125,7 @@ PLAYER_COLORS = [
     (60, 120, 255),
     (60, 200, 60),
     (255, 215, 0),
-    (200, 100, 255)
+    (200, 100, 255),
 ]
 
 MENU_GRADIENT_TOP = (25, 60, 25)
