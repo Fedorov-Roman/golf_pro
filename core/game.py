@@ -417,7 +417,6 @@ class GolfGame:
     def handle_event(self, event):
         if self.shot_system.selecting_angle:
             if event.type == pygame.MOUSEMOTION:
-                # Передаём положение мыши на экране и центр шкалы (середина экрана)
                 self.shot_system.update_angle(
                     event.pos[1], config.SCREEN_HEIGHT // 2, config.ANGLE_SELECT_RADIUS
                 )
@@ -439,6 +438,8 @@ class GolfGame:
                     self.camera.zoom_in()
                 else:
                     self.camera.zoom_out()
+            elif self.state == GameState.MENU_RECORDS:
+                self.records_scroll_offset -= event.y * 20
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 if self.state in (

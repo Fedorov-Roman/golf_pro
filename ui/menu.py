@@ -155,8 +155,8 @@ def draw_records_screen(
     start_y = 20  # отступ от верхнего края прокручиваемой области
     row_height = 30
     header_height = 35
-    gap = 15
-    bottom_padding = 20
+    gap = 15  # промежуток между группами лунок
+    bottom_padding = 20  # отступ после последней строки
 
     # Вычисляем полную высоту контента
     total_height = start_y
@@ -166,7 +166,9 @@ def draw_records_screen(
             for weather in weathers:
                 total_height += row_height
         total_height += gap
-    total_height = total_height - gap + bottom_padding
+    total_height = (
+        total_height - gap + bottom_padding
+    )  # убираем последний gap, добавляем отступ
 
     # Видимая область между линиями
     visible_top = upper_line_y + 2
